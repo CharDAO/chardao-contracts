@@ -50,6 +50,7 @@ contract donate{
 
     function withdraw(uint amount) payable public{
          //this is the 6 month time lock
+         //do we still want this?
         address reciever = msg.sender;
         Donator storage donator = donators[reciever];
         require(block.timestamp >= donators[msg.sender].donateTime + 15552000 );
