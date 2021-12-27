@@ -27,6 +27,7 @@ contract donate{
     //sets us as the boker
     constructor() payable{
         broker = msg.sender;
+        //this is a test
     }
 
     function addADonator() payable public{
