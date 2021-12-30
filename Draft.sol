@@ -6,7 +6,7 @@ contract donate{
     address public brokerV2Address = 0xBB6B5C07C038cba58148d82722629117c5EfE2c9;
 
     //each donator gets their own id 
-    uint idCheck = 0;
+    uint userNumber = 0;
 
     //we are the broker, but we automate this task
     address public broker;
@@ -37,40 +37,43 @@ contract donate{
         require(msg.sender != broker, "broker cannot donate");
         require(msg.value >= .01 ether, "The minumum donation is .01 ether");
 
-        //dont know why these lines are throwing error
+        //this whole section sends the money to marketing and devs
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint actualDonationMoney = msg.value - (marketingMoney + devMoney);
         payable(marketingAddress).transfer(marketingMoney);
         payable(devPayoutAddress).transfer(devMoney);
-        idCheck += 1;
-        Donator memory newDonator = Donator(msg.sender, actualDonationMoney, block.timestamp, idCheck, 0, 0);
+
+        userNumber += 1;
+        //creates the new donator
+        Donator memory newDonator = Donator(msg.sender, actualDonationMoney, block.timestamp, userNumber, block.timestamp, (actualDonationMoney * 1 ether));
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
         payable(broker).transfer(msg.value);
-        mintReceiptTokens(msg.sender, actualDonationMoney);
+        mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
     }
 
     function mintReceiptTokens (address reciever, uint amount) private {
         Donator storage donator = donators[reciever];
         require(donator.amountDonated > .01 ether);
         donator.donateTime = block.timestamp;
-        //get the donator to send the donation
-        //trigger the receipt token minting when a donators sends eth 
+
+        //check this 
+        amount = amount * 1 ether;
+
         balances[reciever] += amount;
 
     }
 
     function withdraw(uint amount, address reciever) payable public{
         Donator storage donator = donators[reciever];
-         //this is the 6 month time lock
         require(msg.sender != broker, "The broker cannot withdraw funds");
-        require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2);
+        require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
-        //this basically just burns the tokens
-        balances[reciever] -= amount;
         uint etherAmount = amount * (1 ether);
-        payable(msg.sender).transfer(etherAmount); 
+        if(payable(msg.sender).send(etherAmount)){
+            balances[reciever] -= amount;
+
         /* 
         how do we get the line above to send from teh broker address?
         As of now it sends tokens from the person who requested the withdrawl.
@@ -79,7 +82,26 @@ contract donate{
         Work on this part please !!
         */
 
+        }
+        else{
+            revert("The transaction failed");
+        }
 
+    }
+
+    function donationFromDonator(uint amount) payable public{
+        require(amount >= .01 ether);
+        require(msg.sender != broker, "broker cannot donate money");
+        
+        //check this
+        uint receiptTokens = amount * 1 ether;
+
+        if(payable(broker).send(amount)){
+            balances[msg.sender] += receiptTokens;
+        }
+        else{
+            revert("The transaction failed");
+        }
     }
 
     function checkBalance(address donator) view public returns(uint) {
