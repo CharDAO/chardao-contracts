@@ -1,8 +1,9 @@
 //SPDX-License-Identifier: Unlicensed
 pragma solidity >= 0.7.0 <0.9.0;
 contract donate{
-    address marketingAddress;
-    address devPayoutAddress;
+    address public marketingAddress = 0xBB6B5C07C038cba58148d82722629117c5EfE2c9;
+    address public devPayoutAddress = 0xBB6B5C07C038cba58148d82722629117c5EfE2c9;
+    address public brokerV2Address = 0xBB6B5C07C038cba58148d82722629117c5EfE2c9;
 
     //each donator gets their own id 
     uint idCheck = 0;
@@ -37,23 +38,22 @@ contract donate{
         require(msg.value >= .01 ether, "The minumum donation is .01 ether");
 
         //dont know why these lines are throwing error
-        uint marketingMoney = (msg.value * .03);
-        uint devMoney = (msg.value * (5/100));
-        
+        uint marketingMoney = (msg.value / 100) * 3;
+        uint devMoney = (msg.value / 100) * 2;
+        uint actualDonationMoney = msg.value - (marketingMoney + devMoney);
         payable(marketingAddress).transfer(marketingMoney);
         payable(devPayoutAddress).transfer(devMoney);
         idCheck += 1;
-        Donator memory newDonator = Donator(msg.sender, msg.value, block.timestamp, idCheck, 0, 0);
+        Donator memory newDonator = Donator(msg.sender, actualDonationMoney, block.timestamp, idCheck, 0, 0);
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
         payable(broker).transfer(msg.value);
-  
+        mintReceiptTokens(msg.sender, actualDonationMoney);
     }
 
-    function mintReceiptTokens (address reciever, uint amount) payable public {
+    function mintReceiptTokens (address reciever, uint amount) private {
         Donator storage donator = donators[reciever];
-        require(msg.sender == broker, "Only the contract creator can mint");
-        require(donator.amountDonated > 0);
+        require(donator.amountDonated > .01 ether);
         donator.donateTime = block.timestamp;
         //get the donator to send the donation
         //trigger the receipt token minting when a donators sends eth 
@@ -62,16 +62,23 @@ contract donate{
     }
 
     function withdraw(uint amount, address reciever) payable public{
-        require(msg.sender == broker); 
-         //do we still want this?
         Donator storage donator = donators[reciever];
          //this is the 6 month time lock
+        require(msg.sender != broker, "The broker cannot withdraw funds");
         require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2);
         require(amount <= donator.receiptTokenAmt);
         //this basically just burns the tokens
         balances[reciever] -= amount;
         uint etherAmount = amount * (1 ether);
-        payable(reciever).transfer(etherAmount);
+        payable(msg.sender).transfer(etherAmount); 
+        /* 
+        how do we get the line above to send from teh broker address?
+        As of now it sends tokens from the person who requested the withdrawl.
+        I don't know how to specify the sender address other than the person sending the request.
+
+        Work on this part please !!
+        */
+
 
     }
 
