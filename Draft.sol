@@ -1,6 +1,9 @@
 //SPDX-License-Identifier: Unlicensed
 pragma solidity >= 0.7.0 <0.9.0;
 contract donate{
+    address marketingAddress;
+    address devPayoutAddress;
+
     //each donator gets their own id 
     uint idCheck = 0;
 
@@ -14,7 +17,7 @@ contract donate{
     //the list of donators in the game
     Donator[] public donatorsInGame;
 
-//the donator with this various attributes
+    //the donator with this various attributes
     struct Donator{
         address donatorAddress;
         uint amountDonated;
@@ -27,14 +30,23 @@ contract donate{
     //sets us as the boker
     constructor() payable{
         broker = msg.sender;
-        //this is a test
     }
 
     function addADonator() payable public{
+        require(msg.sender != broker, "broker cannot donate");
+        require(msg.value >= .01 ether, "The minumum donation is .01 ether");
+
+        //dont know why these lines are throwing error
+        uint marketingMoney = (msg.value * .03);
+        uint devMoney = (msg.value * .02);
+        
+        payable(marketingAddress).transfer(marketingMoney);
+        payable(devPayoutAddress).transfer(devMoney);
         idCheck += 1;
         Donator memory newDonator = Donator(msg.sender, msg.value, block.timestamp, idCheck, 0, 0);
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
+        payable(broker).transfer(msg.value);
   
     }
 
@@ -49,14 +61,18 @@ contract donate{
 
     }
 
-    function withdraw(uint amount) payable public{
-         //this is the 6 month time lock
+    function withdraw(uint amount, address reciever) payable public{
+        require(msg.sender == broker); 
          //do we still want this?
-        address reciever = msg.sender;
         Donator storage donator = donators[reciever];
-        require(block.timestamp >= donators[msg.sender].donateTime + 15552000 );
+         //this is the 6 month time lock
+        require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2);
         require(amount <= donator.receiptTokenAmt);
+        //this basically just burns the tokens
         balances[reciever] -= amount;
+        uint etherAmount = amount * (1 ether);
+        payable(reciever).transfer(etherAmount);
+
     }
 
     function checkBalance(address donator) view public returns(uint) {
