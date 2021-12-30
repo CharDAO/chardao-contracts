@@ -38,7 +38,7 @@ contract donate{
 
         //dont know why these lines are throwing error
         uint marketingMoney = (msg.value * .03);
-        uint devMoney = (msg.value * .02);
+        uint devMoney = (msg.value * (5/100));
         
         payable(marketingAddress).transfer(marketingMoney);
         payable(devPayoutAddress).transfer(devMoney);
