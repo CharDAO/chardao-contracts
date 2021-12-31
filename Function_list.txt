@@ -1,0 +1,4 @@
+Add donator
+donate
+withdraw
+check balance 
