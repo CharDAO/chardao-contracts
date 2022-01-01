@@ -6,7 +6,7 @@ contract donate{
     address public brokerV2Address = 0xBB6B5C07C038cba58148d82722629117c5EfE2c9;
 
     //each donator gets their own id 
-    uint userNumber = 0;
+    uint userIdNumber = 0;
 
     //we are the broker, but we automate this task
     address public broker;
@@ -43,10 +43,9 @@ contract donate{
         uint actualDonationMoney = msg.value - (marketingMoney + devMoney);
         payable(marketingAddress).transfer(marketingMoney);
         payable(devPayoutAddress).transfer(devMoney);
-
-        userNumber += 1;
+        userIdNumber += 1;
         //creates the new donator
-        Donator memory newDonator = Donator(msg.sender, actualDonationMoney, block.timestamp, userNumber, block.timestamp, (actualDonationMoney * 1 ether));
+        Donator memory newDonator = Donator(msg.sender, actualDonationMoney, block.timestamp, userIdNumber, block.timestamp, (actualDonationMoney * 1 ether));
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
         payable(broker).transfer(msg.value);
@@ -62,7 +61,6 @@ contract donate{
         amount = amount * 1 ether;
 
         balances[reciever] += amount;
-
     }
 
     function withdraw(uint amount, address reciever) payable public{
@@ -86,18 +84,15 @@ contract donate{
         else{
             revert("The transaction failed");
         }
-
     }
 
-    function donationFromDonator(uint amount) payable public{
+    function donationAfterCreation(uint amount) payable public{
         require(amount >= .01 ether);
         require(msg.sender != broker, "broker cannot donate money");
-        
         //check this
         uint receiptTokens = amount * 1 ether;
-
         if(payable(broker).send(amount)){
-            balances[msg.sender] += receiptTokens;
+            mintReceiptTokens(msg.sender, receiptTokens);
         }
         else{
             revert("The transaction failed");
