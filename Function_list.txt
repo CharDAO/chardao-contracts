@@ -1,0 +1,5 @@
+Add donator
+donate
+withdraw
+mintReceiptTokens
+check balance 
