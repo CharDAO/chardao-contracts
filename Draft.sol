@@ -3,10 +3,9 @@ pragma solidity >= 0.7.0 <0.9.0;
 contract donate{
     address public marketingAddress = 0xBB6B5C07C038cba58148d82722629117c5EfE2c9;
     address public devPayoutAddress1 = 0xBB6B5C07C038cba58148d82722629117c5EfE2c9; N_Acc
-    address public devPayoutAddress2 = ; E_Acc
-    address public devPayoutAddress3 = ; A_Acc
-    address public devPayoutAddress4 = 0x068797666966Bdac9354aF172b3604956cEce356; J_Acc
-    address public devPayoutAddress5 = 0x30b15D2A67DcD2267748D182892bAe1489EEFDFb; //M_Acc
+    
+    //address public devPayoutAddress4 = 0x068797666966Bdac9354aF172b3604956cEce356; J_Acc
+    //address public devPayoutAddress5 = 0x30b15D2A67DcD2267748D182892bAe1489EEFDFb; //M_Acc
 
     //each donator gets their own id 
     uint userIdNumber = 0;
@@ -43,20 +42,17 @@ contract donate{
         //this whole section sends the money to marketing and devs
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
-        //uint stagingMoney = (devMoney)/3;
-        //uint testPayout  = (stagingMoney / 100) * 1;
-        //uint Acc1_Money = stagingMoney - (testPayout * 2);
-        //payable(devPayoutAddress4).transfer(testPayout);
-        //payable(devPayoutAddress5).transfer(testPayput);
-        uint actualDonationMoney = msg.value - (marketingMoney + devMoney);
+        uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
+        uint stagingMoney = (devMoney)/3;
         payable(marketingAddress).transfer(marketingMoney);
         payable(devPayoutAddress).transfer(devMoney);
         userIdNumber += 1;
+
         //creates the new donator
         Donator memory newDonator = Donator(msg.sender, actualDonationMoney, block.timestamp, userIdNumber, block.timestamp, (actualDonationMoney * 1 ether));
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
-        payable(broker).transfer(msg.value);
+        payable(broker).transfer(yeildFarmMoney);
         mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
     }
 
