@@ -3,16 +3,12 @@ pragma solidity >= 0.7.0 <0.9.0;
 contract donate{
     address public marketingAddress = 0x1aBACc90f9297BB221951CE9b12A7FE3F4762F37;
     address public devPayoutAddress = 0x43a8Ad77D5C56db80A627E37d14a5D4e4F59C87A; 
-    
-    //address public devPayoutAddress4 = 0x068797666966Bdac9354aF172b3604956cEce356; //J_Acc
-    //address public devPayoutAddress5 = 0x30b15D2A67DcD2267748D182892bAe1489EEFDFb; //M_Acc
+    address public yeildFarmAddress = 0xeFD23625008f8255CeFe02c29d39b79db2a58372;
 
     uint userIdNumber = 0;
 
-    //we are the broker, but we automate this task
     address public broker;
 
-    //maps the donator to a variable and the balances of the donators
     mapping(address => Donator) donators; 
     mapping(address => uint) public balances;
 
@@ -42,7 +38,6 @@ contract donate{
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
-        uint stagingMoney = (devMoney)/3;
         payable(marketingAddress).transfer(marketingMoney);
         payable(devPayoutAddress).transfer(devMoney);
         userIdNumber += 1;
@@ -52,12 +47,16 @@ contract donate{
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
         payable(broker).transfer(yeildFarmMoney);
-        mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
+        if(newDonator.receiptTokenAmt > 0){
+            mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
+        }else{
+            revert("No receipt tokens to mint at this time...donate money first");
+        }
     }
 
     function mintReceiptTokens (address reciever, uint amount) private {
         Donator storage donator = donators[reciever];
-        require(donator.amountDonated > .01 ether);
+        require(donator.amountDonated >= .01 ether);
         donator.donateTime = block.timestamp;
         //check this 
         amount = amount * 1 ether;
@@ -105,8 +104,10 @@ contract donate{
         }
     }
 
-    function yeildFarm() payable public{
-
+    function yeildFarm(uint amount) payable public{
+        //this is just going to be manual for now, need to talk to the community to see how to acheive this 
+        require(msg.sender == broker);
+        payable(yeildFarmAddress).transfer(amount);
     }
 
     function checkBalance(address donator) view public returns(uint) {
