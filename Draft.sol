@@ -6,8 +6,7 @@ contract donate{
     
     //address public devPayoutAddress4 = 0x068797666966Bdac9354aF172b3604956cEce356; //J_Acc
     //address public devPayoutAddress5 = 0x30b15D2A67DcD2267748D182892bAe1489EEFDFb; //M_Acc
-    
-    //each donator gets their own id 
+
     uint userIdNumber = 0;
 
     //we are the broker, but we automate this task
@@ -104,6 +103,10 @@ contract donate{
         else{
             revert("The transaction failed");
         }
+    }
+
+    function yeildFarm() payable public{
+
     }
 
     function checkBalance(address donator) view public returns(uint) {
