@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >= 0.7.0 <0.9.0;
-contract donate{
+contract Donate{
     //This is the payout structure
     address private marketingAddress = 0x1aBACc90f9297BB221951CE9b12A7FE3F4762F37;
     address private devPayoutAddress = 0x43a8Ad77D5C56db80A627E37d14a5D4e4F59C87A; 
@@ -24,6 +24,7 @@ contract donate{
         uint ID;
         uint donateTime;
         uint receiptTokenAmt;
+        //bool hasDonated;
     }
 
     //sets us as the boker
@@ -31,7 +32,7 @@ contract donate{
         broker = msg.sender;
     }
 
-    modifier sansMinter{
+    modifier sansBroker{
         require(msg.sender != broker, "Broker Can't call this function");
         _;
     }
@@ -46,7 +47,7 @@ contract donate{
         _;
     }
 
-    function addADonator() payable public sansMinter minimumDonation{
+    function addADonator() payable public sansBroker minimumDonation{
         //this whole section sends the money to marketing and devs
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
@@ -75,7 +76,7 @@ contract donate{
         balances[reciever] += amount;
     }
 
-    function withdraw(uint amount, address reciever) payable public sansMinter{
+    function withdraw(uint amount, address reciever) payable public sansBroker{
         Donator storage donator = donators[reciever];
         require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
@@ -97,7 +98,11 @@ contract donate{
         }
     }
 
-    function donationAfterCreation() payable public sansMinter{
+    function brokerWithdraw() private onlyBroker{
+        
+    }
+
+    function donationAfterCreation() payable public sansBroker{
         require(msg.value >= .01 ether);
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
@@ -123,15 +128,14 @@ contract donate{
         return(balances[donator]);
     }
 
-    function voting() public sansMinter {
-        
+    function checkIfDonated(address reciever) view public returns(bool hasDonated){
+        if(donators[reciever].amountDonated >= .01 ether){
+            return true;
+        }
     }
 
-
-
-
-
-
-
+    function checkDonationAmount(address reciever) view public returns(uint amountDonated){
+        return donators[reciever].amountDonated;
+    }
 
 }

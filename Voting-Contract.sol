@@ -1,11 +1,15 @@
-//SPDX-License-Identifier: Unlicensed
+//SPDX-License-Identifier: MIT
 pragma solidity >=0.7.0 <0.9.0;
+
+import "./Draft.sol";
+
 contract ballot{
 
+    Donate donate;
     //VARIABLES
     struct vote{
         address voterAddress;
-        bool choice;
+        uint choice;
     }
 
     struct voter{
@@ -49,7 +53,8 @@ contract ballot{
     }
 
     modifier didDonate(){
-        require(donators[msg.sender].amountDonated >= .01 ether);
+        bool testVar = donate.checkIfDonated(msg.sender);
+        require(testVar);
         _;
     }
 
@@ -66,16 +71,17 @@ contract ballot{
 
     function addVoter(address _voterAddress) public inState(State.Created) didDonate{
         voter memory v;
+        v.amountDonated = donate.checkDonationAmount(msg.sender);
         v.voted = false;
         voterRegister[_voterAddress] = v;
         totalVoter++;
     }
 
-    function startProposal() public onlyOfficial{
+    function startProposal() public onlyOfficial didDonate{
         state = State.Proposal;
     }
 
-    function addProposal(string _proposal) public inState(State.Proposal){
+    function addProposal(string memory _proposal) public inState(State.Proposal) didDonate{
         if(proposals.length < 5){
             proposals[propCount] = _proposal;
         }
@@ -88,9 +94,11 @@ contract ballot{
         state = State.Voting;
     }
 
-    function doVote(uint _choice) public inState(State.Voting) returns(uint voted){
+    function doVote(uint _choice) public inState(State.Voting) didDonate returns(bool voted){
         bool found = false;
-        if(bytes(voterRegister[msg.sender].voterName).length != 0 && !voterRegister[msg.sender].voted){
+
+        //fix
+        if(voterRegister[msg.sender].amountDonated != 0 && !voterRegister[msg.sender].voted){
             vote memory v;
             v.voterAddress = msg.sender;
             v.choice = _choice;
@@ -127,12 +135,14 @@ contract ballot{
     function endVote() public onlyOfficial inState(State.Voting) returns(uint voteWinner){
         state = State.Ended;
         uint winIndex = 0;
-        for(int i = 0; i <= 5; i++){
+        uint winVoteCount = 0;
+        for(uint i = 0; i <= 5; i++){
             if(voteRegister[i-1] > winIndex){
-                winIndex = voterRegister[i-1];
+                winVoteCount = voteRegister[i-1];
+                winIndex = i-1;
             }
         }
         finalResult = winIndex;
-        return(finalResult);
+        return finalResult;
     }
 }
