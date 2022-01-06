@@ -1,9 +1,10 @@
 //SPDX-License-Identifier: Unlicensed
 pragma solidity >= 0.7.0 <0.9.0;
 contract donate{
-    address public marketingAddress = 0x1aBACc90f9297BB221951CE9b12A7FE3F4762F37;
-    address public devPayoutAddress = 0x43a8Ad77D5C56db80A627E37d14a5D4e4F59C87A; 
-    address public yeildFarmAddress = 0xeFD23625008f8255CeFe02c29d39b79db2a58372;
+    //This is the payout structure
+    address private marketingAddress = 0x1aBACc90f9297BB221951CE9b12A7FE3F4762F37;
+    address private devPayoutAddress = 0x43a8Ad77D5C56db80A627E37d14a5D4e4F59C87A; 
+    address private yeildFarmAddress = 0xeFD23625008f8255CeFe02c29d39b79db2a58372;
 
     uint userIdNumber = 0;
 
@@ -30,10 +31,22 @@ contract donate{
         broker = msg.sender;
     }
 
-    function addADonator() payable public{
-        require(msg.sender != broker, "broker cannot donate");
-        require(msg.value >= .01 ether, "The minumum donation is .01 ether");
+    modifier sansMinter{
+        require(msg.sender != broker, "Broker Can't call this function");
+        _;
+    }
 
+    modifier minimumDonation{
+        require(msg.value >= .01 ether, "The minimum donation is .01 ether");
+        _;
+    }
+
+    modifier onlyBroker{
+        require(msg.sender == broker, "Only the broker can call this function");
+        _;
+    }
+
+    function addADonator() payable public sansMinter minimumDonation{
         //this whole section sends the money to marketing and devs
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
@@ -54,18 +67,16 @@ contract donate{
         }
     }
 
-    function mintReceiptTokens (address reciever, uint amount) private {
+    function mintReceiptTokens (address reciever, uint amount) private minimumDonation{
         Donator storage donator = donators[reciever];
-        require(donator.amountDonated >= .01 ether);
         donator.donateTime = block.timestamp;
         //check this 
         amount = amount * 1 ether;
         balances[reciever] += amount;
     }
 
-    function withdraw(uint amount, address reciever) payable public{
+    function withdraw(uint amount, address reciever) payable public sansMinter{
         Donator storage donator = donators[reciever];
-        require(msg.sender != broker, "The broker cannot withdraw funds");
         require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
         uint etherAmount = amount * (1 ether);
@@ -86,9 +97,8 @@ contract donate{
         }
     }
 
-    function donationAfterCreation() payable public{
+    function donationAfterCreation() payable public sansMinter{
         require(msg.value >= .01 ether);
-        require(msg.sender != broker, "broker cannot donate money");
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
@@ -104,15 +114,24 @@ contract donate{
         }
     }
 
-    function yeildFarm(uint amount) payable public{
+    function yeildFarm(uint amount) payable public onlyBroker{
         //this is just going to be manual for now, need to talk to the community to see how to acheive this 
-        require(msg.sender == broker);
         payable(yeildFarmAddress).transfer(amount);
     }
 
     function checkBalance(address donator) view public returns(uint) {
         return(balances[donator]);
     }
+
+    function voting() public sansMinter {
+        
+    }
+
+
+
+
+
+
 
 
 }
