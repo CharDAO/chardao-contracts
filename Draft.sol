@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicensed
+//SPDX-License-Identifier: MIT
 pragma solidity >= 0.7.0 <0.9.0;
 contract donate{
     address public marketingAddress = 0x1aBACc90f9297BB221951CE9b12A7FE3F4762F37;
