@@ -15,6 +15,7 @@ contract Donate{
 
     //the list of donators in the game
     Donator[] public donatorsInGame;
+    address[] private addressTP;
 
     //the donator with this various attributes
     struct Donator{
@@ -24,6 +25,7 @@ contract Donate{
         uint ID;
         uint donateTime;
         uint receiptTokenAmt;
+        uint amtToWithdraw;
         //bool hasDonated;
     }
 
@@ -32,6 +34,7 @@ contract Donate{
         broker = msg.sender;
     }
 
+    //MODIFIERS 
     modifier sansBroker{
         require(msg.sender != broker, "Broker Can't call this function");
         _;
@@ -47,8 +50,8 @@ contract Donate{
         _;
     }
 
+    //FUNCTION 
     function addADonator() payable public sansBroker minimumDonation{
-        //this whole section sends the money to marketing and devs
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
@@ -57,7 +60,7 @@ contract Donate{
         userIdNumber += 1;
 
         //creates the new donator
-        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney * 1 ether));
+        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney * 1 ether), 0);
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
         payable(broker).transfer(yeildFarmMoney);
@@ -80,9 +83,9 @@ contract Donate{
         Donator storage donator = donators[reciever];
         require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
-        uint etherAmount = amount * (1 ether);
-        if(payable(msg.sender).send(etherAmount)){
-            balances[reciever] -= amount;
+        balances[reciever] -= amount;
+        donators[msg.sender].amtToWithdraw = amount;
+        addressTP.push(reciever);
 
         /* 
         how do we get the line above to send from teh broker address?
@@ -90,16 +93,15 @@ contract Donate{
         I don't know how to specify the sender address other than the person sending the request.
 
         Work on this part please !!
-        */
 
-        }
-        else{
-            revert("The transaction failed");
-        }
+        This seems like a dumb solution
+        */
     }
 
-    function brokerWithdraw() private onlyBroker{
-        
+    function brokerWithdraw() payable public onlyBroker{
+        for(uint i = 0; i <= addressTP.length; i++){
+            payable(addressTP[i-1]).transfer(donators[addressTP[i-1]].amtToWithdraw);
+        }
     }
 
     function donationAfterCreation() payable public sansBroker{
