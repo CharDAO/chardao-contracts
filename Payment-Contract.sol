@@ -12,6 +12,7 @@ contract Donate{
 
     mapping(address => Donator) donators; 
     mapping(address => uint) public balances;
+    mapping(address => uint) pendingWithdrawals;
 
     //the list of donators in the game
     Donator[] public donatorsInGame;
@@ -51,34 +52,54 @@ contract Donate{
     }
 
     //FUNCTION 
-    function addADonator() payable public sansBroker minimumDonation{
+    function addADonator() payable public sansBroker minimumDonation returns(bool){
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
-        payable(marketingAddress).transfer(marketingMoney);
-        payable(devPayoutAddress).transfer(devMoney);
+        //payable(marketingAddress).transfer(marketingMoney);
+        //payable(devPayoutAddress).transfer(devMoney);
         userIdNumber += 1;
 
         //creates the new donator
         Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney * 1 ether), 0);
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
-        payable(broker).transfer(yeildFarmMoney);
+        //payable(broker).transfer(yeildFarmMoney);
         if(newDonator.receiptTokenAmt > 0){
             mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
         }else{
             revert("No receipt tokens to mint at this time...donate money first");
+        }
+
+//Does this add Protection form payment faliure?
+        if(splitMoneyFromDonate(payable(marketingAddress), marketingMoney) && splitMoneyFromDonate(payable(devPayoutAddress), devMoney) &&splitMoneyFromDonate(payable(broker), yeildFarmMoney)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    function splitMoneyFromDonate(address payable reciever, uint amount) private returns(bool){
+        if(reciever.send(amount)){
+            return true;
+        }
+        else{
+            return false;
         }
     }
 
     function mintReceiptTokens (address reciever, uint amount) private minimumDonation{
         Donator storage donator = donators[reciever];
         donator.donateTime = block.timestamp;
-        //check this 
-        amount = amount * 1 ether;
         balances[reciever] += amount;
     }
+    function withdraw() payable public {
+      uint amount = pendingWithdrawals[msg.sender];
+      pendingWithdrawals[msg.sender] = 0;
+      payable(msg.sender).transfer(amount);
+   }
 
+/*
     function withdraw(uint amount, address reciever) payable public sansBroker{
         Donator storage donator = donators[reciever];
         require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
@@ -87,7 +108,7 @@ contract Donate{
         donators[msg.sender].amtToWithdraw = amount;
         addressTP.push(reciever);
 
-        /* 
+        
         how do we get the line above to send from teh broker address?
         As of now it sends tokens from the person who requested the withdrawl.
         I don't know how to specify the sender address other than the person sending the request.
@@ -95,7 +116,7 @@ contract Donate{
         Work on this part please !!
 
         This seems like a dumb solution
-        */
+        
     }
 
     function brokerWithdraw() payable public onlyBroker{
@@ -103,17 +124,17 @@ contract Donate{
             payable(addressTP[i-1]).transfer(donators[addressTP[i-1]].amtToWithdraw);
         }
     }
-
+*/
     function donationAfterCreation() payable public sansBroker{
         require(msg.value >= .01 ether);
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
-        payable(marketingAddress).transfer(marketingMoney);
-        payable(devPayoutAddress).transfer(devMoney);
+        //payable(marketingAddress).transfer(marketingMoney);
+        //payable(devPayoutAddress).transfer(devMoney);
         //check this
         uint receiptTokens = yeildFarmMoney * 1 ether;
-        if(payable(broker).send(yeildFarmMoney)){
+        if(splitMoneyFromDonate(payable(marketingAddress), marketingMoney) && splitMoneyFromDonate(payable(broker), yeildFarmMoney) && splitMoneyFromDonate(payable(devPayoutAddress), devMoney)){
             mintReceiptTokens(msg.sender, receiptTokens);
         }
         else{
@@ -121,21 +142,16 @@ contract Donate{
         }
     }
 
-    function yeildFarm(uint amount) payable public onlyBroker{
-        //this is just going to be manual for now, need to talk to the community to see how to acheive this 
-        payable(yeildFarmAddress).transfer(amount);
-    }
-
     function checkBalance(address donator) view public returns(uint) {
         return(balances[donator]);
     }
-
+//Function returns data to the ballot contract
     function checkIfDonated(address reciever) view public returns(bool hasDonated){
         if(donators[reciever].amountDonated >= .01 ether){
             return true;
         }
     }
-
+//Function returns data to the ballot contract 
     function checkDonationAmount(address reciever) view public returns(uint amountDonated){
         return donators[reciever].amountDonated;
     }
