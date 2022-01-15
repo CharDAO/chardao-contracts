@@ -84,10 +84,10 @@ contract Donate{
         }
     }
 
-    function mintReceiptTokens (address reciever, uint amount) private minimumDonation{
-        Donator storage donator = donators[reciever];
+    function mintReceiptTokens (address receiver, uint amount) private minimumDonation{
+        Donator storage donator = donators[receiver];
         donator.donateTime = block.timestamp;
-        balances[reciever] += amount;
+        balances[receiver] += amount;
     }
     /*
     function withdraw(uint amount) payable public {
@@ -100,13 +100,13 @@ contract Donate{
    */
 
 
-    function withdraw(uint amount, address reciever) payable public sansBroker{
-        Donator storage donator = donators[reciever];
+    function withdraw(uint amount, address receiver) payable public sansBroker{
+        Donator storage donator = donators[receiver];
        //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
-        balances[reciever] -= amount;
+        balances[receiver] -= amount;
         donators[msg.sender].amtToWithdraw = amount;
-        addressToPay.push(reciever);
+        addressToPay.push(receiver);
 
     }
 
@@ -150,16 +150,16 @@ contract Donate{
         return(balances[donator]);
     }
 //Function returns data to the ballot contract
-    function checkIfDonated(address reciever) view public returns(bool hasDonated){
-        if(donators[reciever].amountDonated >= .01 ether){
+    function checkIfDonated(address receiver) view public returns(bool hasDonated){
+        if(donators[receiver].amountDonated >= .01 ether){
             return true;
         }else{
             return false;
         }
     }
 //Function returns data to the ballot contract 
-    function checkDonationAmount(address reciever) view public returns(uint amountDonated){
-        return donators[reciever].amountDonated;
+    function checkDonationAmount(address receiver) view public returns(uint amountDonated){
+        return donators[receiver].amountDonated;
     }
 
 }
