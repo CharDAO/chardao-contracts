@@ -12,11 +12,10 @@ contract Donate{
 
     mapping(address => Donator) donators; 
     mapping(address => uint) public balances;
-    mapping(address => uint) pendingWithdrawals;
-
+    
     //the list of donators in the game
     Donator[] public donatorsInGame;
-    address[] private addressTP;
+    address[] private addressToPay;
 
     //the donator with this various attributes
     struct Donator{
@@ -56,15 +55,12 @@ contract Donate{
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
-        //payable(marketingAddress).transfer(marketingMoney);
-        //payable(devPayoutAddress).transfer(devMoney);
         userIdNumber += 1;
 
         //creates the new donator
-        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney * 1 ether), 0);
+        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney), 0);
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
-        //payable(broker).transfer(yeildFarmMoney);
         if(newDonator.receiptTokenAmt > 0){
             mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
         }else{
@@ -80,10 +76,10 @@ contract Donate{
     }
 
     function splitMoneyFromDonate(address payable reciever, uint amount) private returns(bool){
-        if(reciever.send(amount)){
+        (bool sent, bytes memory data) = reciever.call{value: amount}("");
+        if(sent){
             return true;
-        }
-        else{
+        }else{
             return false;
         }
     }
@@ -93,38 +89,46 @@ contract Donate{
         donator.donateTime = block.timestamp;
         balances[reciever] += amount;
     }
-    function withdraw() payable public {
-      uint amount = pendingWithdrawals[msg.sender];
-      pendingWithdrawals[msg.sender] = 0;
-      payable(msg.sender).transfer(amount);
+    /*
+    function withdraw(uint amount) payable public {
+        require(balances[msg.sender] > 0, "You dont have any money to withdraw");
+        balances[msg.sender] -= amount;
+        uint amountToWithdraw = pendingWithdrawals[msg.sender];
+        pendingWithdrawals[msg.sender] = 0;
+        payable(msg.sender).transfer(amountToWithdraw);
    }
+   */
 
-/*
+
     function withdraw(uint amount, address reciever) payable public sansBroker{
         Donator storage donator = donators[reciever];
-        require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
+       //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
         balances[reciever] -= amount;
         donators[msg.sender].amtToWithdraw = amount;
-        addressTP.push(reciever);
+        addressToPay.push(reciever);
 
-        
-        how do we get the line above to send from teh broker address?
-        As of now it sends tokens from the person who requested the withdrawl.
-        I don't know how to specify the sender address other than the person sending the request.
-
-        Work on this part please !!
-
-        This seems like a dumb solution
-        
     }
 
-    function brokerWithdraw() payable public onlyBroker{
-        for(uint i = 0; i <= addressTP.length; i++){
-            payable(addressTP[i-1]).transfer(donators[addressTP[i-1]].amtToWithdraw);
+
+//This function is the problem
+
+    function brokerWithdraw(address _receiver) payable public onlyBroker{
+        for(uint i = 0; i <= addressToPay.length; i++){ //addressToPay[i]
+            uint withdrawalAMT = donators[_receiver].amtToWithdraw;
+            (bool sent, bytes memory data) = _receiver.call{value: withdrawalAMT}("");
+            require(sent, "Failed to send AVAX");
         }
     }
-*/
+
+
+
+
+    function getData() view public returns(uint){
+        return(addressToPay.length);
+    }
+
+
     function donationAfterCreation() payable public sansBroker{
         require(msg.value >= .01 ether);
         uint marketingMoney = (msg.value / 100) * 3;
@@ -149,6 +153,8 @@ contract Donate{
     function checkIfDonated(address reciever) view public returns(bool hasDonated){
         if(donators[reciever].amountDonated >= .01 ether){
             return true;
+        }else{
+            return false;
         }
     }
 //Function returns data to the ballot contract 
