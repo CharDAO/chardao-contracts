@@ -12,11 +12,9 @@ contract Donate{
 
     mapping(address => Donator) donators; 
     mapping(address => uint) public balances;
-    mapping(address => uint) pendingWithdrawals;
-
     //the list of donators in the game
     Donator[] public donatorsInGame;
-    address[] private addressTP;
+    address[] private addressToPay;
 
     //the donator with this various attributes
     struct Donator{
@@ -61,7 +59,7 @@ contract Donate{
         userIdNumber += 1;
 
         //creates the new donator
-        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney * 1 ether), 0);
+        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney), 0);
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
         //payable(broker).transfer(yeildFarmMoney);
@@ -93,38 +91,25 @@ contract Donate{
         donator.donateTime = block.timestamp;
         balances[reciever] += amount;
     }
-    function withdraw() payable public {
-      uint amount = pendingWithdrawals[msg.sender];
-      pendingWithdrawals[msg.sender] = 0;
-      payable(msg.sender).transfer(amount);
-   }
 
 /*
     function withdraw(uint amount, address reciever) payable public sansBroker{
         Donator storage donator = donators[reciever];
-        require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
+       //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
         balances[reciever] -= amount;
         donators[msg.sender].amtToWithdraw = amount;
-        addressTP.push(reciever);
+        addressToPay.push(reciever);
 
-        
-        how do we get the line above to send from teh broker address?
-        As of now it sends tokens from the person who requested the withdrawl.
-        I don't know how to specify the sender address other than the person sending the request.
-
-        Work on this part please !!
-
-        This seems like a dumb solution
-        
     }
 
     function brokerWithdraw() payable public onlyBroker{
-        for(uint i = 0; i <= addressTP.length; i++){
-            payable(addressTP[i-1]).transfer(donators[addressTP[i-1]].amtToWithdraw);
+        for(uint i = 0; i <= addressToPay.length; i++){
+           uint withdrawalAMT = donators[addressToPay[i]].amtToWithdraw;
+            payable(addressToPay[i]).transfer(withdrawalAMT);
         }
     }
-*/
+
     function donationAfterCreation() payable public sansBroker{
         require(msg.value >= .01 ether);
         uint marketingMoney = (msg.value / 100) * 3;
