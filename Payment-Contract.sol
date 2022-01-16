@@ -14,7 +14,8 @@ contract Donate{
     mapping(address => uint) public balances;
     //the list of donators in the game
     Donator[] public donatorsInGame;
-    address[] private addressToPay;
+    address[] public addressToPay;
+
 
     //the donator with this various attributes
     struct Donator{
@@ -54,15 +55,12 @@ contract Donate{
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
-        //payable(marketingAddress).transfer(marketingMoney);
-        //payable(devPayoutAddress).transfer(devMoney);
         userIdNumber += 1;
 
         //creates the new donator
         Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney), 0);
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
-        //payable(broker).transfer(yeildFarmMoney);
         if(newDonator.receiptTokenAmt > 0){
             mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
         }else{
@@ -70,44 +68,55 @@ contract Donate{
         }
 
 //Does this add Protection form payment faliure?
-        if(splitMoneyFromDonate(payable(marketingAddress), marketingMoney) && splitMoneyFromDonate(payable(devPayoutAddress), devMoney) &&splitMoneyFromDonate(payable(broker), yeildFarmMoney)){
+        if(makeTransfer(payable(marketingAddress), marketingMoney) && makeTransfer(payable(devPayoutAddress), devMoney) &&makeTransfer(payable(broker), yeildFarmMoney)){
             return true;
         }else{
             return false;
         }
     }
 
-    function splitMoneyFromDonate(address payable reciever, uint amount) private returns(bool){
-        if(reciever.send(amount)){
+    function makeTransfer(address payable reciever, uint amount) private returns(bool){
+        (bool sent,) = reciever.call{value: amount}("");
+        require(sent, "Failed to send transaction");
+        if(sent){
             return true;
-        }
-        else{
+        }else{
             return false;
         }
     }
 
-    function mintReceiptTokens (address reciever, uint amount) private minimumDonation{
-        Donator storage donator = donators[reciever];
-        donator.donateTime = block.timestamp;
-        balances[reciever] += amount;
+    function mintReceiptTokens (address receiver, uint amount) private minimumDonation{
+        //Donator storage donator = donators[receiver];
+        donators[receiver].donateTime = block.timestamp;
+        balances[receiver] += amount;
     }
 
-/*
+
     function withdraw(uint amount, address reciever) payable public sansBroker{
         Donator storage donator = donators[reciever];
        //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
         balances[reciever] -= amount;
-        donators[msg.sender].amtToWithdraw = amount;
+
+        donator.amtToWithdraw = amount;
         addressToPay.push(reciever);
 
     }
 
     function brokerWithdraw() payable public onlyBroker{
-        for(uint i = 0; i <= addressToPay.length; i++){
-           uint withdrawalAMT = donators[addressToPay[i]].amtToWithdraw;
-            payable(addressToPay[i]).transfer(withdrawalAMT);
+        for(uint i = 0; i < addressToPay.length; i++){ 
+            uint amount = donators[addressToPay[i]].amtToWithdraw;
+            donators[addressToPay[i]].amtToWithdraw = 0;
+            (bool sent, ) = addressToPay[i].call{value: amount}("");
+            require(sent, "Failed to send transaction");
         }
+        //clears the array
+        delete addressToPay;
+    }
+
+    function getData(address _receiver) view public returns(uint){
+        uint withdrawalAMT = donators[_receiver].amtToWithdraw;
+        return(withdrawalAMT);
     }
 
     function donationAfterCreation() payable public sansBroker{
@@ -119,7 +128,7 @@ contract Donate{
         //payable(devPayoutAddress).transfer(devMoney);
         //check this
         uint receiptTokens = yeildFarmMoney * 1 ether;
-        if(splitMoneyFromDonate(payable(marketingAddress), marketingMoney) && splitMoneyFromDonate(payable(broker), yeildFarmMoney) && splitMoneyFromDonate(payable(devPayoutAddress), devMoney)){
+        if(makeTransfer(payable(marketingAddress), marketingMoney) && makeTransfer(payable(broker), yeildFarmMoney) && makeTransfer(payable(devPayoutAddress), devMoney)){
             mintReceiptTokens(msg.sender, receiptTokens);
         }
         else{
@@ -131,14 +140,16 @@ contract Donate{
         return(balances[donator]);
     }
 //Function returns data to the ballot contract
-    function checkIfDonated(address reciever) view public returns(bool hasDonated){
-        if(donators[reciever].amountDonated >= .01 ether){
+    function checkIfDonated(address payable receiver) view public returns(bool hasDonated){
+        if(balances[receiver] > 0){
             return true;
+        }else{
+            return false;
         }
     }
 //Function returns data to the ballot contract 
-    function checkDonationAmount(address reciever) view public returns(uint amountDonated){
-        return donators[reciever].amountDonated;
+    function checkDonationAmount(address receiver) view public returns(uint amountDonated){
+        return balances[receiver];
     }
 
 }
