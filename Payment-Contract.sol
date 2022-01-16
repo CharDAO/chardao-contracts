@@ -16,6 +16,7 @@ contract Donate{
     Donator[] public donatorsInGame;
     address[] public addressToPay;
 
+
     //the donator with this various attributes
     struct Donator{
         address donatorAddress;
@@ -96,6 +97,7 @@ contract Donate{
        //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
         balances[reciever] -= amount;
+
         donator.amtToWithdraw = amount;
         addressToPay.push(reciever);
 
