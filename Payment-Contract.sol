@@ -12,7 +12,6 @@ contract Donate{
 
     mapping(address => Donator) donators; 
     mapping(address => uint) public balances;
-    
     //the list of donators in the game
     Donator[] public donatorsInGame;
     address[] private addressToPay;
@@ -92,17 +91,8 @@ contract Donate{
         donator.donateTime = block.timestamp;
         balances[reciever] += amount;
     }
-    /*
-    function withdraw(uint amount) payable public {
-        require(balances[msg.sender] > 0, "You dont have any money to withdraw");
-        balances[msg.sender] -= amount;
-        uint amountToWithdraw = pendingWithdrawals[msg.sender];
-        pendingWithdrawals[msg.sender] = 0;
-        payable(msg.sender).transfer(amountToWithdraw);
-   }
-   */
 
-
+/*
     function withdraw(uint amount, address reciever) payable public sansBroker{
         Donator storage donator = donators[reciever];
        //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
@@ -119,7 +109,6 @@ contract Donate{
             payable(addressToPay[i]).transfer(withdrawalAMT);
         }
     }
-
 
     function donationAfterCreation() payable public sansBroker{
         require(msg.value >= .01 ether);
