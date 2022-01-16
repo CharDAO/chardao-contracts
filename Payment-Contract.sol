@@ -90,7 +90,7 @@ contract Donate{
         balances[receiver] += amount;
     }
 
-/*
+
     function withdraw(uint amount, address reciever) payable public sansBroker{
         Donator storage donator = donators[reciever];
        //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
