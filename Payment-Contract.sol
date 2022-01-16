@@ -55,12 +55,15 @@ contract Donate{
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
+        //payable(marketingAddress).transfer(marketingMoney);
+        //payable(devPayoutAddress).transfer(devMoney);
         userIdNumber += 1;
 
         //creates the new donator
         Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney), 0);
         donators[msg.sender] = newDonator;
         donatorsInGame.push(newDonator);
+        //payable(broker).transfer(yeildFarmMoney);
         if(newDonator.receiptTokenAmt > 0){
             mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
         }else{
@@ -76,18 +79,18 @@ contract Donate{
     }
 
     function splitMoneyFromDonate(address payable reciever, uint amount) private returns(bool){
-        (bool sent, bytes memory data) = reciever.call{value: amount}("");
-        if(sent){
+        if(reciever.send(amount)){
             return true;
-        }else{
+        }
+        else{
             return false;
         }
     }
 
-    function mintReceiptTokens (address receiver, uint amount) private minimumDonation{
-        Donator storage donator = donators[receiver];
+    function mintReceiptTokens (address reciever, uint amount) private minimumDonation{
+        Donator storage donator = donators[reciever];
         donator.donateTime = block.timestamp;
-        balances[receiver] += amount;
+        balances[reciever] += amount;
     }
     /*
     function withdraw(uint amount) payable public {
@@ -100,32 +103,21 @@ contract Donate{
    */
 
 
-    function withdraw(uint amount, address receiver) payable public sansBroker{
-        Donator storage donator = donators[receiver];
+    function withdraw(uint amount, address reciever) payable public sansBroker{
+        Donator storage donator = donators[reciever];
        //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
         require(amount <= donator.receiptTokenAmt);
-        balances[receiver] -= amount;
+        balances[reciever] -= amount;
         donators[msg.sender].amtToWithdraw = amount;
-        addressToPay.push(receiver);
+        addressToPay.push(reciever);
 
     }
 
-
-//This function is the problem
-
-    function brokerWithdraw(address _receiver) payable public onlyBroker{
-        for(uint i = 0; i <= addressToPay.length; i++){ //addressToPay[i]
-            uint withdrawalAMT = donators[_receiver].amtToWithdraw;
-            (bool sent, bytes memory data) = _receiver.call{value: withdrawalAMT}("");
-            require(sent, "Failed to send AVAX");
+    function brokerWithdraw() payable public onlyBroker{
+        for(uint i = 0; i <= addressToPay.length; i++){
+           uint withdrawalAMT = donators[addressToPay[i]].amtToWithdraw;
+            payable(addressToPay[i]).transfer(withdrawalAMT);
         }
-    }
-
-
-
-
-    function getData() view public returns(uint){
-        return(addressToPay.length);
     }
 
 
@@ -150,16 +142,14 @@ contract Donate{
         return(balances[donator]);
     }
 //Function returns data to the ballot contract
-    function checkIfDonated(address receiver) view public returns(bool hasDonated){
-        if(donators[receiver].amountDonated >= .01 ether){
+    function checkIfDonated(address reciever) view public returns(bool hasDonated){
+        if(donators[reciever].amountDonated >= .01 ether){
             return true;
-        }else{
-            return false;
         }
     }
 //Function returns data to the ballot contract 
-    function checkDonationAmount(address receiver) view public returns(uint amountDonated){
-        return donators[receiver].amountDonated;
+    function checkDonationAmount(address reciever) view public returns(uint amountDonated){
+        return donators[reciever].amountDonated;
     }
 
 }

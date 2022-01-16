@@ -16,6 +16,8 @@ contract ballot{
     struct voter{
         uint amountDonated;
         bool voted;
+        bool proposed;
+        bool added;
     }
 
     uint private countResult = 0;
@@ -28,8 +30,9 @@ contract ballot{
 
     address public ballotBroker;
     address private otherContract;
+    address[] public voterAddressRegister;
     string public ballotOfficialName;
-    string[5] public proposals;
+    string[] public proposals;
 
     mapping(uint => vote) private votes;
     mapping(address => voter) public voterRegister;
@@ -60,6 +63,11 @@ contract ballot{
         _;
     }
 
+    modifier moreThanFive(){
+        require(voterAddressRegister.length > 5, "Too few registered voters");
+        _;
+    }
+
     //EVENTS 
 
     //FUNCTIONS
@@ -71,31 +79,40 @@ contract ballot{
     }
 
     function newBallot(string memory _ballotOfficialName) public inState(State.End) onlyOfficial{
-            ballotOfficialName = _ballotOfficialName;
-            state = State.Created; 
+        ballotOfficialName = _ballotOfficialName;
+        state = State.Created; 
     }
 
-    function addVoter(address _voterAddress) public inState(State.Created) didDonate{
+    function registerToVote() public inState(State.Created) didDonate{
         voter memory v;
         v.amountDonated = donate.checkDonationAmount(msg.sender);
         v.voted = false;
-        voterRegister[_voterAddress] = v;
+        v.proposed = false;
+        v.added = true;
+        voterRegister[msg.sender] = v;
+        voterAddressRegister.push(msg.sender);
         totalVoter++;
     }
 
-    function startProposal() public onlyOfficial{
+    function startProposal() public onlyOfficial moreThanFive{
         state = State.Proposal;
     }
 
     function addProposal(string memory _proposal) public inState(State.Proposal) didDonate{
-        if(voterRegister[msg.sender].amountDonated != 0 && !voterRegister[msg.sender].voted){
+        if(!voterRegister[msg.sender].proposed && voterRegister[msg.sender].added){
             if(proposals.length < 5){
-                proposals[propCount] = _proposal;
+                voterRegister[msg.sender].proposed = true;
+                proposals.push(_proposal);
             }
             if(proposals.length == 5){
                 state = State.Interum;
             }
         }
+
+    }
+
+    function checkProp()view public returns(uint){
+        return(proposals.length);
     }
 
     function startVote() public inState(State.Interum) onlyOfficial{
@@ -106,7 +123,7 @@ contract ballot{
         bool found = false;
 
         //fix
-        if(voterRegister[msg.sender].amountDonated != 0 && !voterRegister[msg.sender].voted){
+        if(!voterRegister[msg.sender].voted){
             vote memory v;
             v.voterAddress = msg.sender;
             v.choice = _choice;
@@ -140,17 +157,25 @@ contract ballot{
         return found;
     }
 
-    function endVote() public onlyOfficial inState(State.Voting) returns(uint voteWinner){
+    function endVote() public onlyOfficial inState(State.Voting) returns(uint){
         state = State.End;
         uint winIndex = 0;
-        uint winVoteCount = 0;
-        for(uint i = 0; i <= 5; i++){
-            if(voteRegister[i-1] > winIndex){
-                winVoteCount = voteRegister[i-1];
-                winIndex = i-1;
+        uint greatestVotes = 0;
+        turnBackTime();
+        for(uint i = 0; i < 5; i++){
+            if(voteRegister[i] > greatestVotes){
+                greatestVotes = voteRegister[i];
+                winIndex = i;
             }
         }
         finalResult = winIndex;
         return finalResult;
+    }
+    function turnBackTime() private{
+        for( uint i = 0; i < voterAddressRegister.length; i++) {
+            voterRegister[voterAddressRegister[i]].voted = false;
+            voterRegister[voterAddressRegister[i]].proposed = false;
+            voterRegister[voterAddressRegister[i]].added = false;
+        }
     }
 }
