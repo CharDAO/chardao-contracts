@@ -16,7 +16,7 @@ contract Donate{
     mapping(address => Donator) donators; 
     mapping(address => uint) public balances;
     //the list of donators in the game
-    Donator[] public donatorsInGame;
+    Donator[] public donatorsInDao;
     address[] public addressToPay;
 
 
@@ -59,18 +59,13 @@ contract Donate{
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
         userIdNumber += 1;
-
         //creates the new donator
         Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney), 0);
         donators[msg.sender] = newDonator;
-        donatorsInGame.push(newDonator);
+        donatorsInDao.push(newDonator);
         if(newDonator.receiptTokenAmt > 0){
             mintReceiptTokens(msg.sender, newDonator.receiptTokenAmt);
-        }else{
-            revert("No receipt tokens to mint at this time...donate money first");
         }
-
-//Does this add Protection form payment faliure?
         if(makeTransfer(payable(broker), msg.value)){
             return true;
         }else{
@@ -78,53 +73,20 @@ contract Donate{
         }
     }
 
+//handles all transfers of crypto in the contract, uses call method, which is the recommended way to send coin
     function makeTransfer(address payable reciever, uint amount) private returns(bool){
         (bool sent,) = reciever.call{value: amount}("");
         require(sent, "Failed to send transaction");
-            return sent;
+        return sent;
     }
 
+//mints receipt tokens based on the amount you donated
     function mintReceiptTokens (address receiver, uint amount) private minimumDonation{
         balances[receiver] += amount;
     }
 
-
-    function withdraw(uint amount, address reciever) payable public sansBroker{
-        Donator storage donator = donators[reciever];
-       //require(block.timestamp >= donators[msg.sender].donateTime + (15552000)*2); //time lock 
-        require(amount <= donator.receiptTokenAmt);
-        balances[reciever] -= amount;
-
-        donator.amtToWithdraw = amount;
-        addressToPay.push(reciever);
-
-    }
-
-    //this thing doesnt work
-    function brokerWithdraw() payable public onlyBroker{
-        for(uint i = 0; i < addressToPay.length; i++){ 
-            uint amount = donators[addressToPay[i]].amtToWithdraw;
-            donators[addressToPay[i]].amtToWithdraw = 0;
-            (bool sent, ) = addressToPay[i].call{value: amount}("");
-            require(sent, "Failed to send transaction");
-        }
-        //clears the array
-        delete addressToPay;
-    }
-
-    function getData(address _receiver) view public returns(uint){
-        uint withdrawalAMT = donators[_receiver].amtToWithdraw;
-        return(withdrawalAMT);
-    }
-
+//This allows users to donate again, after their initial donation
     function donationAfterCreation() payable public sansBroker minimumDonation{
-        /*
-        uint marketingMoney = (msg.value / 100) * 3;
-        uint devMoney = (msg.value / 100) * 2;
-        uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
-        uint receiptTokens = yeildFarmMoney * 1 ether;
-        */
-        //if(makeTransfer(payable(marketingAddress), marketingMoney) && makeTransfer(payable(broker), yeildFarmMoney) && makeTransfer(payable(devPayoutAddress), devMoney)){
         if(makeTransfer(payable(broker), msg.value)){
             donators[msg.sender].amountDonated = msg.value;
             donators[msg.sender].donateTime = block.timestamp;
@@ -135,9 +97,11 @@ contract Donate{
         }
     }
 
+//allows people who danted, a way to see their receipt tokens
     function checkBalance(address donator) view public returns(uint) {
         return(balances[donator]);
     }
+
 //Function returns data to the ballot contract
     function checkIfDonated(address receiver) view public returns(bool hasDonated){
         if(balances[receiver] > 0){
