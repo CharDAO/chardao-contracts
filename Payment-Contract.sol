@@ -8,6 +8,7 @@ contract Donate{
 
     mapping(address => Donator) donators; 
     mapping(address => uint) public balances;
+    mapping(address => uint) public identityNumber;
 
     //the list of donators in the game
     Donator[] public donatorsInDao;
@@ -33,6 +34,15 @@ contract Donate{
         _;
     }
 
+    modifier doNotDuplicate{
+        bool inPool = true;
+        if(identityNumber[msg.sender] > 0){
+            inPool = false;
+        }
+        require(inPool, "Address has already donated");
+        _;
+    }
+
     modifier minimumDonation{
         require(msg.value >= .01 ether, "The minimum donation is .01 ether");
         _;
@@ -44,13 +54,11 @@ contract Donate{
     }
 
     //FUNCTION 
-    function addADonator() payable public sansBroker minimumDonation returns(bool){
-        uint marketingMoney = (msg.value / 100) * 3;
-        uint devMoney = (msg.value / 100) * 2;
-        uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
+    function addADonator() payable public sansBroker minimumDonation doNotDuplicate returns(bool){
         userIdNumber += 1;
+        identityNumber[msg.sender] = userIdNumber;
         //creates the new donator
-        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney));
+        Donator memory newDonator = Donator(msg.sender, msg.value, block.timestamp, userIdNumber, block.timestamp, msg.value);
         donators[msg.sender] = newDonator;
         donatorsInDao.push(newDonator);
         if(newDonator.receiptTokenAmt > 0){
@@ -72,6 +80,7 @@ contract Donate{
 
 //mints receipt tokens based on the amount you donated
     function mintReceiptTokens (address receiver, uint amount) private minimumDonation{
+        donatorsInDao[(identityNumber[receiver] - 1)].donateTime += block.timestamp;
         balances[receiver] += amount;
     }
 
@@ -80,7 +89,9 @@ contract Donate{
         if(makeTransfer(payable(broker), msg.value)){
             donators[msg.sender].amountDonated = msg.value;
             donators[msg.sender].donateTime = block.timestamp;
-            mintReceiptTokens(msg.sender, ((msg.value / 100) * 95));
+            donatorsInDao[(identityNumber[msg.sender] - 1)].amountDonated += msg.value;
+            donatorsInDao[(identityNumber[msg.sender] - 1)].receiptTokenAmt += msg.value;
+            mintReceiptTokens(msg.sender, msg.value);
         }
         else{
             revert("The transaction failed");
@@ -93,16 +104,20 @@ contract Donate{
     }
 
 //Function returns data to the ballot contract
-    function checkIfDonated(address receiver) view public returns(bool hasDonated){
-        if(balances[receiver] > 0){
+    function checkIfDonated(address _donator) view public returns(bool hasDonated){
+        if(balances[_donator] > 0){
             return true;
         }else{
             return false;
         }
     }
 //Function returns data to the ballot contract 
-    function checkDonationAmount(address receiver) view public returns(uint amountDonated){
-        return balances[receiver];
+    function checkDonationAmount(address _donator) view public returns(uint amountDonated){
+        return balances[_donator];
+    }
+
+    function getReceiptTokenAmt(address _donator) view public returns(uint){
+        return donators[_donator].receiptTokenAmt;
     }
 
 }
