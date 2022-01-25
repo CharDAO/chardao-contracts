@@ -138,7 +138,7 @@ contract Donate{
         return(balances[donator]);
     }
 //Function returns data to the ballot contract
-    function checkIfDonated(address payable receiver) view public returns(bool hasDonated){
+    function checkIfDonated(address receiver) view public returns(bool hasDonated){
         if(balances[receiver] > 0){
             return true;
         }else{
