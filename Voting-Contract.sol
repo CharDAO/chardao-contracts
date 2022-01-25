@@ -24,8 +24,9 @@ contract ballot{
     uint public finalResult = 0;
     uint public totalVoter = 0;
     uint public totalVote = 0;
-    uint private propCount = 0;
+    //uint private propCount = 0;
     uint[5] public voteRegister = [0,0,0,0,0];
+    uint[5] public voteArray = [1, 2, 3, 4, 5];
     
 
     address public ballotBroker;
@@ -122,37 +123,16 @@ contract ballot{
     function doVote(uint _choice) public inState(State.Voting) didDonate returns(bool voted){
         bool found = false;
 
-        //fix
-        if(!voterRegister[msg.sender].voted){
-            vote memory v;
-            v.voterAddress = msg.sender;
-            v.choice = _choice;
-            if(_choice == 1){
-                voteRegister[0] += 1;
-                voterRegister[msg.sender].voted = true;
-            }
-            else if(_choice == 2){
-                voteRegister[1] += 1;
-                voterRegister[msg.sender].voted = true;
-            }
-            else if(_choice == 3){
-                voteRegister[2] += 1;
-                voterRegister[msg.sender].voted = true;
-            }
-            else if(_choice == 4){
-                voteRegister[3] += 1;
-                voterRegister[msg.sender].voted = true;
-            }
-            else if(_choice == 5){
-                voteRegister[4] += 1;
-                voterRegister[msg.sender].voted = true;
-            }
-            else{
-                revert("That was not a valid choice");
-            }
-            votes[totalVote] = v;
-            totalVote++;
-            found = true;
+        //check
+        for(uint i = 0; i < voteArray.length; i++){
+            if(!voterRegister[msg.sender].voted){
+                vote memory v;
+                v.voterAddress = msg.sender;
+                v.choice = _choice;
+                if(_choice == (i+1))
+                    voteRegister[i] += 1;
+                    voterRegister[msg.sender].voted = true;
+                }
         }
         return found;
     }
@@ -177,5 +157,8 @@ contract ballot{
             voterRegister[voterAddressRegister[i]].proposed = false;
             voterRegister[voterAddressRegister[i]].added = false;
         }
+    }
+    function changeStateFromProposal() inState(State.Proposal) public onlyOfficial{
+        state = State.Interum;
     }
 }
