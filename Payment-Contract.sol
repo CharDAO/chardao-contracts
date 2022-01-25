@@ -3,22 +3,14 @@ pragma solidity >= 0.7.0 <0.9.0;
 contract Donate{
     //This is the payout structure
 
-    /*
-    address private marketingAddress = 0x1aBACc90f9297BB221951CE9b12A7FE3F4762F37;
-    address private devPayoutAddress = 0x43a8Ad77D5C56db80A627E37d14a5D4e4F59C87A; 
-    address private yeildFarmAddress = 0xeFD23625008f8255CeFe02c29d39b79db2a58372;
-    */
-
     uint userIdNumber = 0;
-
     address public broker;
 
     mapping(address => Donator) donators; 
     mapping(address => uint) public balances;
+
     //the list of donators in the game
     Donator[] public donatorsInDao;
-    address[] public addressToPay;
-
 
     //the donator with this various attributes
     struct Donator{
@@ -28,11 +20,9 @@ contract Donate{
         uint ID;
         uint donateTime;
         uint receiptTokenAmt;
-        uint amtToWithdraw;
-        //bool hasDonated;
     }
 
-    //sets us as the boker
+    //sets deyployment address as contract broker
     constructor() payable{
         broker = msg.sender;
     }
@@ -60,7 +50,7 @@ contract Donate{
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
         userIdNumber += 1;
         //creates the new donator
-        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney), 0);
+        Donator memory newDonator = Donator(msg.sender, yeildFarmMoney, block.timestamp, userIdNumber, block.timestamp, (yeildFarmMoney));
         donators[msg.sender] = newDonator;
         donatorsInDao.push(newDonator);
         if(newDonator.receiptTokenAmt > 0){
