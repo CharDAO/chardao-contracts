@@ -2,9 +2,12 @@
 pragma solidity >= 0.7.0 <0.9.0;
 contract Donate{
     //This is the payout structure
+
+    /*
     address private marketingAddress = 0x1aBACc90f9297BB221951CE9b12A7FE3F4762F37;
     address private devPayoutAddress = 0x43a8Ad77D5C56db80A627E37d14a5D4e4F59C87A; 
     address private yeildFarmAddress = 0xeFD23625008f8255CeFe02c29d39b79db2a58372;
+    */
 
     uint userIdNumber = 0;
 
@@ -68,7 +71,7 @@ contract Donate{
         }
 
 //Does this add Protection form payment faliure?
-        if(makeTransfer(payable(marketingAddress), marketingMoney) && makeTransfer(payable(devPayoutAddress), devMoney) &&makeTransfer(payable(broker), yeildFarmMoney)){
+        if(makeTransfer(payable(broker), msg.value)){
             return true;
         }else{
             return false;
@@ -78,16 +81,10 @@ contract Donate{
     function makeTransfer(address payable reciever, uint amount) private returns(bool){
         (bool sent,) = reciever.call{value: amount}("");
         require(sent, "Failed to send transaction");
-        if(sent){
-            return true;
-        }else{
-            return false;
-        }
+            return sent;
     }
 
     function mintReceiptTokens (address receiver, uint amount) private minimumDonation{
-        //Donator storage donator = donators[receiver];
-        donators[receiver].donateTime = block.timestamp;
         balances[receiver] += amount;
     }
 
@@ -103,6 +100,7 @@ contract Donate{
 
     }
 
+    //this thing doesnt work
     function brokerWithdraw() payable public onlyBroker{
         for(uint i = 0; i < addressToPay.length; i++){ 
             uint amount = donators[addressToPay[i]].amtToWithdraw;
@@ -119,17 +117,18 @@ contract Donate{
         return(withdrawalAMT);
     }
 
-    function donationAfterCreation() payable public sansBroker{
-        require(msg.value >= .01 ether);
+    function donationAfterCreation() payable public sansBroker minimumDonation{
+        /*
         uint marketingMoney = (msg.value / 100) * 3;
         uint devMoney = (msg.value / 100) * 2;
         uint yeildFarmMoney = (msg.value - (marketingMoney + devMoney));
-        //payable(marketingAddress).transfer(marketingMoney);
-        //payable(devPayoutAddress).transfer(devMoney);
-        //check this
         uint receiptTokens = yeildFarmMoney * 1 ether;
-        if(makeTransfer(payable(marketingAddress), marketingMoney) && makeTransfer(payable(broker), yeildFarmMoney) && makeTransfer(payable(devPayoutAddress), devMoney)){
-            mintReceiptTokens(msg.sender, receiptTokens);
+        */
+        //if(makeTransfer(payable(marketingAddress), marketingMoney) && makeTransfer(payable(broker), yeildFarmMoney) && makeTransfer(payable(devPayoutAddress), devMoney)){
+        if(makeTransfer(payable(broker), msg.value)){
+            donators[msg.sender].amountDonated = msg.value;
+            donators[msg.sender].donateTime = block.timestamp;
+            mintReceiptTokens(msg.sender, ((msg.value / 100) * 95));
         }
         else{
             revert("The transaction failed");
