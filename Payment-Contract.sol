@@ -98,7 +98,7 @@ contract Donate{
         }
     }
 
-//allows people who donated, a way to see their receipt tokens
+//allows people who danted, a way to see their receipt tokens
     function checkBalance(address donator) view public returns(uint) {
         return(balances[donator]);
     }
