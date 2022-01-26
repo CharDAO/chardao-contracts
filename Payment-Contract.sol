@@ -43,6 +43,15 @@ contract Donate{
         _;
     }
 
+    modifier beADonator{
+        bool inPool = false;
+        if(identityNumber[msg.sender] > 0){
+            inPool = true;
+        }
+        require(inPool, "Need to become a donator first");
+        _;
+    }
+
     modifier minimumDonation{
         require(msg.value >= .01 ether, "The minimum donation is .01 ether");
         _;
@@ -76,7 +85,6 @@ contract Donate{
         (bool sent,) = reciever.call{value: amount}("");
         require(sent, "Failed to send transaction");
         return sent;
-
     }
 
 //mints receipt tokens based on the amount you donated
@@ -86,35 +94,27 @@ contract Donate{
     }
 
 //This allows users to donate again, after their initial donation
-    function donationAfterCreation() payable public sansBroker minimumDonation{
+    function donationAfterCreation() payable public sansBroker beADonator minimumDonation{
         if(makeTransfer(payable(broker), msg.value)){
             donators[msg.sender].amountDonated = msg.value;
             donators[msg.sender].donateTime = block.timestamp;
             donatorsInDao[(identityNumber[msg.sender] - 1)].amountDonated += msg.value;
             donatorsInDao[(identityNumber[msg.sender] - 1)].receiptTokenAmt += msg.value;
             mintReceiptTokens(msg.sender, msg.value);
-    }
-
-
-    function donationAfterCreation() payable public sansBroker minimumDonation{
-        if(makeTransfer(payable(broker), msg.value)){
-            donators[msg.sender].amountDonated = msg.value;
-            donators[msg.sender].donateTime = block.timestamp;
-            mintReceiptTokens(msg.sender, msg.sender);
         }
         else{
             revert("The transaction failed");
         }
     }
 
-//allows people who donated, a way to see their receipt tokens
+//allows people who danted, a way to see their receipt tokens
     function checkBalance(address donator) view public returns(uint) {
         return(balances[donator]);
     }
 
 //Function returns data to the ballot contract
-    function checkIfDonated(address receiver) view public returns(bool hasDonated){
-        if(balances[receiver] > 0){
+    function checkIfDonated(address _donator) view public returns(bool hasDonated){
+        if(balances[_donator] > 0){
             return true;
         }else{
             return false;
@@ -124,8 +124,7 @@ contract Donate{
     function checkDonationAmount(address _donator) view public returns(uint amountDonated){
         return balances[_donator];
     }
-    
-//Function retruns the 
+
     function getReceiptTokenAmt(address _donator) view public returns(uint){
         return donators[_donator].receiptTokenAmt;
     }
