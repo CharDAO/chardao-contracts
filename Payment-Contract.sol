@@ -43,6 +43,15 @@ contract Donate{
         _;
     }
 
+    modifier beADonator{
+        bool inPool = false;
+        if(identityNumber[msg.sender] > 0){
+            inPool = true;
+        }
+        require(inPool, "Need to become a donator first");
+        _;
+    }
+
     modifier minimumDonation{
         require(msg.value >= .01 ether, "The minimum donation is .01 ether");
         _;
@@ -85,7 +94,7 @@ contract Donate{
     }
 
 //This allows users to donate again, after their initial donation
-    function donationAfterCreation() payable public sansBroker minimumDonation{
+    function donationAfterCreation() payable public sansBroker beADonator minimumDonation{
         if(makeTransfer(payable(broker), msg.value)){
             donators[msg.sender].amountDonated = msg.value;
             donators[msg.sender].donateTime = block.timestamp;
