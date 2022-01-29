@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >= 0.7.0 <0.9.0;
 contract Donate{
-    //This is the payout structure
+    //This is the payout structure g
 
     uint userIdNumber = 0;
     address public broker;
